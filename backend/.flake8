@@ -1,0 +1,30 @@
+[flake8]
+# Configuration for flake8
+# https://flake8.pycqa.org/en/latest/user/configuration.html
+
+max-line-length = 100
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    .pytest_cache,
+    .mypy_cache,
+    .ruff_cache,
+    venv,
+    .venv,
+    build,
+    dist,
+    *.egg-info
+
+# Per-file ignores
+per-file-ignores =
+    # __init__.py files can have unused imports (re-exports)
+    __init__.py:F401,F403
+    # Test files can have unused imports and long lines
+    tests/*:E501,F401
+
+# Complexity
+max-complexity = 10
+
+# Docstring checks (optional — enable if you want strict docstring enforcement)
+# docstring-convention = google
