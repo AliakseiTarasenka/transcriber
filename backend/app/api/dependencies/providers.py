@@ -49,22 +49,13 @@ def _get_transcript_provider() -> TranscriptProvider:
 
 
 @lru_cache(maxsize=1)
-def _build_llm_provider(api_key: str, model: str, temperature: float) -> LLMProvider:
-    """Cache the LLM adapter per config tuple to reuse its httpx connection pool."""
-    return AnthropicLLMAdapter(api_key=api_key, model=model, temperature=temperature)
+def _build_llm_provider(settings: Settings) -> LLMProvider:
+    """Cache the LLM adapter; reuses its httpx connection pool."""
+    return AnthropicLLMAdapter(settings=settings)
 
 
 def get_llm_provider(settings: _SettingsDep) -> LLMProvider:
-    """LLM provider bound to current settings.
-
-    Public because the app lifespan calls it directly (with a manually-built
-    ``Settings``) to release the underlying httpx pool on shutdown.
-    """
-    return _build_llm_provider(
-        api_key=settings.anthropic_api_key,
-        model=settings.anthropic_model,
-        temperature=settings.anthropic_temperature,
-    )
+    return _build_llm_provider(settings)
 
 
 # --- Use-case factories (private — exposed only via the *Dep aliases) -------

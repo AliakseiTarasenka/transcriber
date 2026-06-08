@@ -11,28 +11,42 @@ from anthropic import AsyncAnthropic
 
 from app.core.logging import get_logger
 from app.domain.exceptions.errors import LLMError
+from app.infrastructure.config.settings import Settings, get_settings
 
 logger = get_logger(__name__)
 
 
 @dataclass(slots=True)
 class AnthropicLLMAdapter:
-    """Concrete LLM provider using Anthropic's streaming Messages API.
+    """Concrete LLM provider using Anthropic's streaming Messages API."""
 
-    Sampling temperature controls output randomness:
-      * ``0.0``  - fully deterministic, best for extractive / factual tasks.
-      * ``0.3``  - default here: faithful summaries with light natural phrasing.
-      * ``0.7+`` - creative writing / brainstorming.
-      * ``1.0``  - Anthropic's API default (too high for summarization).
-    """
-
-    api_key: str
-    model: str = "claude-sonnet-4-5-20250929"
-    temperature: float = 0.3
-
-    # Lazily-created shared client. Reusing a single ``AsyncAnthropic`` keeps
-    # the underlying httpx connection pool warm across requests, reducing TTFB.
+    settings: Settings = field(default_factory=get_settings)
     _client: AsyncAnthropic | None = field(default=None, init=False, repr=False)
+
+    # ------------------------------------------------------------------
+    # Convenience properties — delegate to settings so callers never need
+    # to reach into self.settings directly.
+    # ------------------------------------------------------------------
+
+    @property
+    def api_key(self) -> str:
+        return self.settings.anthropic_api_key
+
+    @property
+    def model(self) -> str:
+        return self.settings.anthropic_model
+
+    @property
+    def temperature(self) -> float:
+        return self.settings.anthropic_temperature
+
+    @property
+    def max_output_tokens(self) -> int:
+        return self.settings.max_output_tokens
+
+    # ------------------------------------------------------------------
+    # Client lifecycle
+    # ------------------------------------------------------------------
 
     def _get_client(self) -> AsyncAnthropic:
         if not self.api_key:
@@ -56,18 +70,24 @@ class AnthropicLLMAdapter:
             )
         return self._client
 
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
     async def stream(
         self,
         *,
         system_prompt: str,
         user_prompt: str,
-        max_tokens: int = 1024,
+        max_tokens: int | None = None,  # None → use settings.max_output_tokens
     ) -> AsyncIterator[str]:
+        """Stream response tokens as they arrive from the Anthropic API."""
         client = self._get_client()
+        effective_max_tokens = max_tokens if max_tokens is not None else self.max_output_tokens
         try:
             async with client.messages.stream(
                 model=self.model,
-                max_tokens=max_tokens,
+                max_tokens=effective_max_tokens,
                 temperature=self.temperature,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],
