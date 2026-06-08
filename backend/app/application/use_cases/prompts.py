@@ -51,12 +51,9 @@ def build_system_prompt(mode: SummaryMode, lang: str) -> str:
     target_language = _language_name(lang)
     instruction = _MODE_INSTRUCTIONS[mode]
     return (
-        "You are an expert assistant that summarizes YouTube video transcripts. "
-        f"Always respond in {target_language}, regardless of the transcript's "
-        "original language — translate the content as part of summarizing it. "
-        f"{instruction} "
-        "Do not invent facts that are not present in the transcript. "
-        "Preserve proper nouns (names, places, brands) in their original form."
+        f"Summarize this YouTube transcript in {target_language}. "
+        f"Translate if needed. {instruction} "
+        "Be factual. Preserve proper nouns."
     )
 
 

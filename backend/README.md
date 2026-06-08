@@ -234,6 +234,9 @@ Current coverage: **48%** (unit tests for domain + application layers). See [LIN
 | [docs/LINTING.md](./docs/LINTING.md) | Comprehensive linting guide |
 | [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) | All environment variables |
 | [docs/SETTINGS_FLOW.md](./docs/SETTINGS_FLOW.md) | How settings propagate (architecture) |
+| [docs/COST_OPTIMIZATION.md](./docs/COST_OPTIMIZATION.md) | 🔥 Reduce API costs by 90%+ |
+| [docs/PERFORMANCE_OPTIMIZATION.md](./docs/PERFORMANCE_OPTIMIZATION.md) | ⚡ Scale to 1000+ concurrent users |
+| [docs/OPTIMIZATION_QUICKSTART.md](./docs/OPTIMIZATION_QUICKSTART.md) | Quick wins for cost & performance |
 | [LINTING_SETUP_COMPLETE.md](./LINTING_SETUP_COMPLETE.md) | Linting setup summary |
 
 ## Tech Stack
