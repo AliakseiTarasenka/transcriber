@@ -33,7 +33,16 @@ class SummaryErrorEvent:
     type: Literal["error"] = "error"
 
 
+@dataclass(frozen=True, slots=True)
+class SummaryLoadingEvent:
+    """Emitted immediately to show progress while fetching transcript."""
+
+    message: str
+    type: Literal["loading"] = "loading"
+
+
 SummaryEvent = Union[
+    SummaryLoadingEvent,
     SummaryMetaEvent,
     SummaryTextEvent,
     SummaryDoneEvent,

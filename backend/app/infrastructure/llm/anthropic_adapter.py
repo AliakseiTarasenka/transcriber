@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
+import httpx
 from anthropic import APIError as AnthropicAPIError
 from anthropic import AsyncAnthropic
 
@@ -37,7 +38,22 @@ class AnthropicLLMAdapter:
         if not self.api_key:
             raise LLMError("ANTHROPIC_API_KEY is not configured")
         if self._client is None:
-            self._client = AsyncAnthropic(api_key=self.api_key)
+            # Custom httpx client with tuned connection pool limits for better
+            # throughput under concurrent load.
+            http_client = httpx.AsyncClient(
+                limits=httpx.Limits(
+                    max_connections=100,  # total concurrent connections
+                    max_keepalive_connections=20,  # persistent connections
+                ),
+                timeout=httpx.Timeout(
+                    60.0,  # total request timeout
+                    connect=5.0,  # connection timeout
+                ),
+            )
+            self._client = AsyncAnthropic(
+                api_key=self.api_key,
+                http_client=http_client,
+            )
         return self._client
 
     async def stream(

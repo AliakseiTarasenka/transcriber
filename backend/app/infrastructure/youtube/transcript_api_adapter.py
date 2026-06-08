@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -22,15 +23,34 @@ from app.domain.exceptions.errors import TranscriptNotFoundError, TranscriptProv
 
 logger = get_logger(__name__)
 
+# Shared thread pool for YouTube fetches. Limits concurrent thread usage to
+# prevent thread exhaustion under high load. The default thread pool (used by
+# asyncio.to_thread) is unbounded, which can cause issues with many concurrent
+# requests.
+_EXECUTOR = ThreadPoolExecutor(
+    max_workers=10,  # max concurrent YouTube fetches
+    thread_name_prefix="youtube_fetch_",
+)
+
 
 @dataclass(slots=True)
 class YouTubeTranscriptApiAdapter:
     """Concrete transcript provider backed by ``youtube-transcript-api`` >= 1.0."""
 
     async def fetch(self, video_id: VideoId, languages: tuple[str, ...]) -> Transcript:
-        """Fetch a transcript off the event loop (the underlying lib is sync)."""
+        """Fetch a transcript off the event loop (the underlying lib is sync).
+
+        Uses a bounded thread pool executor to prevent thread exhaustion under
+        high concurrent load.
+        """
+        loop = asyncio.get_event_loop()
         try:
-            return await asyncio.to_thread(self._fetch_sync, video_id, languages)
+            return await loop.run_in_executor(
+                _EXECUTOR,
+                self._fetch_sync,
+                video_id,
+                languages,
+            )
         except (TranscriptNotFoundError, TranscriptProviderError):
             raise
         except Exception as exc:

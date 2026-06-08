@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
@@ -9,6 +10,7 @@ from app.application.dto.summary_events import (
     SummaryDoneEvent,
     SummaryErrorEvent,
     SummaryEvent,
+    SummaryLoadingEvent,
     SummaryMetaEvent,
     SummaryTextEvent,
 )
@@ -37,9 +39,19 @@ class SummarizeVideoUseCase:
     max_output_tokens: int
 
     async def execute(self, request: SummaryRequest) -> AsyncIterator[SummaryEvent]:
-        # 1. Fetch transcript ---------------------------------------------------
+        # 1. Start transcript fetch (non-blocking) -----------------------------
+        # Start the fetch immediately but don't await — this overlaps with
+        # emitting the loading event.
+        transcript_task = asyncio.create_task(
+            self.get_transcript.execute(request.url, request.lang)
+        )
+
+        # Emit loading event immediately for better perceived performance
+        yield SummaryLoadingEvent(message="Fetching transcript...")
+
+        # 2. Await transcript fetch ---------------------------------------------
         try:
-            transcript = await self.get_transcript.execute(request.url, request.lang)
+            transcript = await transcript_task
         except DomainError as exc:
             logger.warning("transcript_fetch_failed", error=str(exc))
             yield SummaryErrorEvent(text=str(exc))
@@ -49,7 +61,7 @@ class SummarizeVideoUseCase:
             yield SummaryErrorEvent(text=f"Unexpected error: {exc}")
             return
 
-        # 2. Build prompts & emit meta -----------------------------------------
+        # 3. Build prompts & emit meta ------------------------------------------
         text = transcript.truncate(self.max_transcript_chars)
         yield self._build_meta_event(transcript, len(text))
 
@@ -60,7 +72,7 @@ class SummarizeVideoUseCase:
             transcript_language=transcript.language,
         )
 
-        # 3. Stream LLM output --------------------------------------------------
+        # 4. Stream LLM output --------------------------------------------------
         try:
             async for chunk in self.llm_provider.stream(
                 system_prompt=system_prompt,

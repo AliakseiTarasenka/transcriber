@@ -4,6 +4,7 @@ from app.application.dto.summary_events import (
     SummaryDoneEvent,
     SummaryErrorEvent,
     SummaryEvent,
+    SummaryLoadingEvent,
     SummaryMetaEvent,
     SummaryTextEvent,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "SummaryDoneEvent",
     "SummaryErrorEvent",
     "SummaryEvent",
+    "SummaryLoadingEvent",
     "SummaryMetaEvent",
     "SummaryTextEvent",
 ]
