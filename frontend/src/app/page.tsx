@@ -8,13 +8,13 @@ export default function HomePage() {
   const { state, start, cancel } = useSummaryStream();
 
   return (
-    <main className="container">
+    <main id="main-content" className="container">
       <header className="hero">
         <h1>🎬 Transcriber</h1>
-        <p>YouTube transcript fetcher & AI summarizer powered by Claude.</p>
       </header>
 
-      <section className="card">
+      <section className="card" aria-labelledby="form-heading">
+        <h2 id="form-heading" className="sr-only">Enter video details</h2>
         <SummarizeForm
           onSubmit={start}
           onCancel={cancel}
@@ -22,12 +22,13 @@ export default function HomePage() {
         />
       </section>
 
-      <section className="card">
+      <section className="card" aria-labelledby="output-heading">
+        <h2 id="output-heading" className="sr-only">Summary output</h2>
         <SummaryView state={state} />
       </section>
 
       <footer className="footer">
-        <span>FastAPI · Next.js · Anthropic Claude · Clean Architecture</span>
+        <span>@2026</span>
       </footer>
     </main>
   );

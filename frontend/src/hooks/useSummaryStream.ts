@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { streamSummary } from "@/services/transcriberApi";
+import { streamSummaryGen } from "@/services/transcriberApi";
 import type { SummarizeRequest } from "@/types/api";
 
 export interface SummaryMeta {
@@ -89,7 +89,7 @@ export function useSummaryStream() {
       setState({ ...initialState, isStreaming: true });
 
       try {
-        for await (const event of streamSummary(request, controller.signal)) {
+        for await (const event of streamSummaryGen(request, controller.signal)) {
           switch (event.type) {
             case "meta":
               setState((prev) => ({

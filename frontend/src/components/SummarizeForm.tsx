@@ -44,68 +44,87 @@ export function SummarizeForm({ disabled, onSubmit, onCancel, isStreaming }: Pro
 
   return (
     <form className="form" onSubmit={handleSubmit}>
-      <label className="field">
+      <label htmlFor="youtube-url" className="field">
         <span>YouTube URL</span>
         <input
+          id="youtube-url"
           type="url"
           required
           placeholder="https://www.youtube.com/watch?v=..."
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={disabled}
+          aria-describedby="url-help"
         />
       </label>
 
-      <div className="row">
-        <label className="field">
-          <span>Mode</span>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as SummaryMode)}
-            disabled={disabled}
-          >
-            {MODES.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      <fieldset className="field-group">
+        <legend className="sr-only">Summary options</legend>
+        <div className="row">
+          <label htmlFor="summary-mode" className="field">
+            <span>Mode</span>
+            <select
+              id="summary-mode"
+              value={mode}
+              onChange={(e) => setMode(e.target.value as SummaryMode)}
+              disabled={disabled}
+            >
+              {MODES.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label className="field">
-          <span>Language</span>
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value as SummaryLang)}
-            disabled={disabled}
-          >
-            {LANGS.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+          <label htmlFor="summary-lang" className="field">
+            <span>Language</span>
+            <select
+              id="summary-lang"
+              value={lang}
+              onChange={(e) => setLang(e.target.value as SummaryLang)}
+              disabled={disabled}
+            >
+              {LANGS.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </fieldset>
 
-      <label className="field">
+      <label htmlFor="custom-prompt" className="field">
         <span>Custom prompt (optional)</span>
         <textarea
+          id="custom-prompt"
           rows={3}
           placeholder="e.g. Focus on technical details, list mentioned tools..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           disabled={disabled}
           maxLength={2000}
+          aria-describedby="prompt-help"
         />
       </label>
 
       <div className="actions">
-        <button type="submit" disabled={disabled || isStreaming}>
+        <button
+          type="submit"
+          disabled={disabled || isStreaming}
+          aria-busy={isStreaming}
+          aria-label={isStreaming ? "Streaming summary in progress" : "Start summarizing video"}
+        >
           {isStreaming ? "Streaming..." : "Summarize"}
         </button>
         {isStreaming && onCancel && (
-          <button type="button" className="secondary" onClick={onCancel}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={onCancel}
+            aria-label="Cancel summary streaming"
+          >
             Cancel
           </button>
         )}

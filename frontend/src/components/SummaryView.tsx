@@ -53,7 +53,11 @@ export function SummaryView({ state }: Props) {
         </div>
       )}
 
-      {error && <div className="error">⚠️ {error}</div>}
+      {error && (
+        <div className="error" role="alert" aria-live="assertive">
+          ⚠️ {error}
+        </div>
+      )}
 
       {(text || isStreaming) && (
         <article ref={outputRef} className="output" aria-live="polite">
