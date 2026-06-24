@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     max_output_tokens: int = Field(default=8_192, ge=128, le=64_000)
     default_lang: str = Field(default="ru")
 
+    # YouTube transcript fetching
+    youtube_fetch_workers: int = Field(default=10, ge=1, le=50)
+    youtube_fetch_timeout_seconds: float = Field(default=30.0, ge=1.0, le=120.0)
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

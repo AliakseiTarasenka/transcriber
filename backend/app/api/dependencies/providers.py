@@ -21,9 +21,9 @@ Everything else is an implementation detail.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, cast
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from app.api.sse import SummaryEventEncoder, SummaryEventStreamer
 from app.application.use_cases.get_transcript import GetTranscriptUseCase
@@ -32,7 +32,6 @@ from app.domain.interfaces.llm_provider import LLMProvider
 from app.domain.interfaces.transcript_provider import TranscriptProvider
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.llm.anthropic_adapter import AnthropicLLMAdapter
-from app.infrastructure.youtube.transcript_api_adapter import YouTubeTranscriptApiAdapter
 
 # --- Internal type aliases (private) ----------------------------------------
 
@@ -42,10 +41,9 @@ _SettingsDep = Annotated[Settings, Depends(get_settings)]
 # --- Provider factories (singletons where appropriate) -----------------------
 
 
-@lru_cache(maxsize=1)
-def _get_transcript_provider() -> TranscriptProvider:
-    """Singleton transcript provider (stateless, safe to share)."""
-    return YouTubeTranscriptApiAdapter()
+def _get_transcript_provider(request: Request) -> TranscriptProvider:
+    """Return app-owned singleton transcript provider."""
+    return cast(TranscriptProvider, request.app.state.transcript_provider)
 
 
 @lru_cache(maxsize=1)

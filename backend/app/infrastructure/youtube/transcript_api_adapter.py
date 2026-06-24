@@ -1,4 +1,4 @@
-"""Adapter over ``youtube-transcript-api`` (v1.x) implementing :class:`TranscriptProvider`."""
+"""Adapter over youtube-transcript-api implementing TranscriptProvider."""
 
 from __future__ import annotations
 
@@ -23,38 +23,48 @@ from app.domain.exceptions.errors import TranscriptNotFoundError, TranscriptProv
 
 logger = get_logger(__name__)
 
-# Shared thread pool for YouTube fetches. Limits concurrent thread usage to
-# prevent thread exhaustion under high load. The default thread pool (used by
-# asyncio.to_thread) is unbounded, which can cause issues with many concurrent
-# requests.
-_EXECUTOR = ThreadPoolExecutor(
-    max_workers=10,  # max concurrent YouTube fetches
-    thread_name_prefix="youtube_fetch_",
-)
-
 
 @dataclass(slots=True)
 class YouTubeTranscriptApiAdapter:
-    """Concrete transcript provider backed by ``youtube-transcript-api`` >= 1.0."""
+    """Transcript provider backed by blocking youtube-transcript-api."""
+
+    executor: ThreadPoolExecutor
+    timeout_seconds: float = 30.0
 
     async def fetch(self, video_id: VideoId, languages: tuple[str, ...]) -> Transcript:
-        """Fetch a transcript off the event loop (the underlying lib is sync).
+        """Fetch transcript without blocking the event loop."""
+        normalized_languages = languages or ("en",)
 
-        Uses a bounded thread pool executor to prevent thread exhaustion under
-        high concurrent load.
-        """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
+
         try:
-            return await loop.run_in_executor(
-                _EXECUTOR,
-                self._fetch_sync,
-                video_id,
-                languages,
+            return await asyncio.wait_for(
+                loop.run_in_executor(
+                    self.executor,
+                    self._fetch_sync,
+                    video_id,
+                    normalized_languages,
+                ),
+                timeout=self.timeout_seconds,
             )
+        except TimeoutError as exc:
+            logger.warning(
+                "youtube_fetch_timeout",
+                video_id=str(video_id),
+                timeout_seconds=self.timeout_seconds,
+            )
+            raise TranscriptProviderError(
+                f"Timed out while fetching transcript for video {video_id}"
+            ) from exc
         except (TranscriptNotFoundError, TranscriptProviderError):
             raise
         except Exception as exc:
-            logger.exception("youtube_unexpected_error", video_id=str(video_id))
+            logger.exception(
+                "youtube_unexpected_error",
+                video_id=str(video_id),
+                languages=list(normalized_languages),
+                error_type=type(exc).__name__,
+            )
             raise TranscriptProviderError(f"Unexpected transcript error: {exc}") from exc
 
     @staticmethod
@@ -66,6 +76,7 @@ class YouTubeTranscriptApiAdapter:
             fetched = api.fetch(vid, languages=list(languages))
         except Exception as exc:
             _raise_domain_error(exc, vid, languages)
+            raise  # unreachable, keeps type checkers happy
 
         segments = tuple(
             TranscriptSegment(
@@ -74,32 +85,42 @@ class YouTubeTranscriptApiAdapter:
                 duration=float(snippet.duration),
             )
             for snippet in fetched.snippets
+            if snippet.text
         )
 
         return Transcript(
             video_id=vid,
-            language=getattr(fetched, "language_code", languages[0] if languages else "en"),
+            language=getattr(fetched, "language_code", languages[0]),
             segments=segments,
             is_generated=bool(getattr(fetched, "is_generated", False)),
         )
 
 
-def _raise_domain_error(exc: BaseException, video_id: str, languages: tuple[str, ...]) -> None:
-    """Map ``youtube-transcript-api`` errors to our domain exceptions."""
+def _raise_domain_error(
+    exc: BaseException,
+    video_id: str,
+    languages: tuple[str, ...],
+) -> None:
+    """Map youtube-transcript-api errors to domain exceptions."""
     match exc:
         case TranscriptsDisabled():
             raise TranscriptNotFoundError(f"Transcripts are disabled for video {video_id}") from exc
+
         case NoTranscriptFound():
             raise TranscriptNotFoundError(
                 f"No transcript found for video {video_id} in languages {list(languages)}"
             ) from exc
+
         case VideoUnavailable():
             raise TranscriptNotFoundError(f"Video {video_id} is unavailable") from exc
+
         case IpBlocked() | RequestBlocked():
             raise TranscriptProviderError(
-                "YouTube blocked the request from this IP. Configure a proxy or cookie auth."
+                "YouTube blocked the request from this IP. Configure proxy or cookie auth."
             ) from exc
+
         case CouldNotRetrieveTranscript():
             raise TranscriptProviderError(f"Failed to retrieve transcript: {exc}") from exc
+
         case _:
             raise exc
