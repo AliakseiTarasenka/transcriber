@@ -40,3 +40,6 @@ clean:  ## Remove build artifacts, cache, coverage
 	find . -type f -name "*.pyc" -delete
 
 check: lint test  ## Run linters + tests (CI-ready)
+
+up:
+	uvicorn app.main:app --reload --port 8000

@@ -213,12 +213,51 @@ button.secondary:hover:not(:disabled) {
   font-size: 12.5px;
 }
 
-.output {
-  white-space: pre-wrap;
-  word-wrap: break-word;
+.output-panel {
+  display: flex;
+  flex-direction: column;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.output-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.output-toolbar .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+
+.output-toolbar .icon-button:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.output-toolbar .icon-button .icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.output {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
   padding: 16px;
   font-size: 14.5px;
   line-height: 1.65;
